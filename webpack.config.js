@@ -3,6 +3,7 @@
 'use strict';
 
 const path = require('path');
+const webpack = require('webpack');
 
 //@ts-check
 /** @typedef {import('webpack').Configuration} WebpackConfig **/
@@ -25,12 +26,12 @@ const extensionConfig = {
   },
   resolve: {
     // support reading TypeScript and JavaScript files, 📖 -> https://github.com/TypeStrong/ts-loader
-    extensions: ['.ts', '.js']
+    extensions: ['.ts', '.tsx', '.js', '.jsx']
   },
   module: {
     rules: [
       {
-        test: /\.ts$/,
+        test: /\.tsx?$/,
         exclude: /node_modules/,
         use: [
           {
@@ -45,4 +46,54 @@ const extensionConfig = {
     level: "log", // enables logging required for problem matchers
   },
 };
-module.exports = [ extensionConfig ];
+
+// Create a React-specific configuration for webview
+/** @type WebpackConfig */
+const webviewConfig = {
+  mode: 'none',
+  target: 'web',
+  entry: './src/webview/index.tsx',
+  output: {
+    path: path.resolve(__dirname, 'dist/webview'),
+    filename: 'index.js',
+    libraryTarget: 'umd'
+  },
+  resolve: {
+    extensions: ['.ts', '.tsx', '.js', '.jsx']
+  },
+  module: {
+    rules: [
+      {
+        test: /\.tsx?$/,
+        exclude: /node_modules/,
+        use: [
+          {
+            loader: 'ts-loader'
+          }
+        ]
+      },
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader']
+      }
+    ]
+  },
+  plugins: [
+    new webpack.DefinePlugin({
+      'process.env': JSON.stringify({
+        NODE_ENV: 'production',
+      })
+    }),
+    new webpack.ProvidePlugin({
+      process: 'process/browser'
+    })
+  ],
+  performance: {
+    hints: false
+  },
+  optimization: {
+    minimize: false
+  }
+};
+
+module.exports = [ extensionConfig, webviewConfig ];
