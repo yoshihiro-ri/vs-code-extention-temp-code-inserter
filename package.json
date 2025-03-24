@@ -16,7 +16,7 @@
       "activitybar": [
         {
           "id": "code-inserter-sidebar-view",
-          "title": "Code Inserter",
+          "title": "コード挿入ツール",
           "icon": "media/icon.svg"
         }
       ]
@@ -26,7 +26,7 @@
         {
           "type": "webview",
           "id": "code-inserter.helloWorldView",
-          "name": "Hello World"
+          "name": "コードスニペット"
         }
       ]
     },
@@ -49,6 +49,7 @@
     "test": "vscode-test"
   },
   "devDependencies": {
+    "@tailwindcss/postcss7-compat": "^2.2.17",
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
     "@types/react": "^19.0.12",
@@ -58,10 +59,14 @@
     "@typescript-eslint/parser": "^8.25.0",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.4.1",
+    "autoprefixer": "^10.4.21",
     "css-loader": "^7.1.2",
     "eslint": "^9.21.0",
+    "postcss": "^8.5.3",
+    "postcss-loader": "^8.1.1",
     "process": "^0.11.10",
     "style-loader": "^4.0.0",
+    "tailwindcss": "^4.0.15",
     "ts-loader": "^9.5.2",
     "typescript": "^5.7.3",
     "webpack": "^5.98.0",

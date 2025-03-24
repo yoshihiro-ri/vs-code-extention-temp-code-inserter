@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
-import SnippetForm from './components/SnippetForm';
-import SnippetList from './components/SnippetList';
-import { CodeSnippet } from './models/types';
+import SnippetForm from './SnippetForm';
+import SnippetList from './SnippetList';
+import { CodeSnippet, InsertHistory } from '../models/types';
 
 // VSCodeのAPIとのメッセージハンドラー
 declare const acquireVsCodeApi: () => {
@@ -21,11 +21,6 @@ const App: React.FC = () => {
 
     // 初期化時にVSCodeから保存されたスニペットを読み込む
     useEffect(() => {
-        // WebViewの準備完了を通知
-        vscode.postMessage({
-            type: 'ready'
-        });
-
         // メッセージハンドラを設定
         const messageHandler = (event: MessageEvent) => {
             const message = event.data;
@@ -133,35 +128,24 @@ const App: React.FC = () => {
         });
     };
 
-    // 特定のファイルの特定行にジャンプする関数
-    const handleJumpToLocation = (fileName: string, filePath: string, line: number) => {
-        // VSCodeにジャンプリクエストを送信
-        vscode.postMessage({
-            type: 'jumpToLocation',
-            fileName: filePath || fileName, // filePathがある場合は優先して使用
-            line
-        });
-    };
-
     return (
         <div className="app-container">
             <header className="app-header">
-                <h1 className="app-title">コードスニペット管理</h1>
+                <h1 className="app-title">Code Snippets</h1>
             </header>
             
             <main className="app-content">
                 <div className="form-section">
-                    <h2 className="section-title">新しいスニペットを追加</h2>
+                    <h2 className="section-title">Add New Snippet</h2>
                     <SnippetForm onAddSnippet={handleAddSnippet} />
                 </div>
                 
                 <div className="list-section">
-                    <h2 className="section-title">登録済みスニペット</h2>
+                    <h2 className="section-title">Your Snippets</h2>
                     <SnippetList 
                         snippets={snippets}
                         onInsert={handleInsertSnippet}
                         onDelete={handleDeleteSnippet}
-                        onJumpToLocation={handleJumpToLocation}
                     />
                 </div>
             </main>
