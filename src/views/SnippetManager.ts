@@ -25,7 +25,7 @@ interface CodeSnippet {
     };
 }
 
-export class HelloWorldView implements vscode.WebviewViewProvider {
+export class SnippetManager implements vscode.WebviewViewProvider {
     public static readonly viewType = 'code-inserter.helloWorldView';
 
     private _view?: vscode.WebviewView;
@@ -36,6 +36,11 @@ export class HelloWorldView implements vscode.WebviewViewProvider {
     private static readonly STORAGE_KEY = 'code-inserter.snippets';
     // 保存されたスニペット
     private _snippets: CodeSnippet[] = [];
+    private _lastInsertedAt?: {
+        position: vscode.Position;
+        filePath: string;
+        uid: string;
+    };
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
@@ -49,7 +54,7 @@ export class HelloWorldView implements vscode.WebviewViewProvider {
     private _loadSnippets() {
         try {
             // ExtensionContextのglobalStateから保存されたスニペットを取得
-            const snippetsJson = this._context.globalState.get<string>(HelloWorldView.STORAGE_KEY);
+            const snippetsJson = this._context.globalState.get<string>(SnippetManager.STORAGE_KEY);
             
             if (snippetsJson) {
                 this._snippets = JSON.parse(snippetsJson);
@@ -70,7 +75,7 @@ export class HelloWorldView implements vscode.WebviewViewProvider {
             this._snippets = snippets;
             // ExtensionContextのglobalStateに保存
             await this._context.globalState.update(
-                HelloWorldView.STORAGE_KEY,
+                SnippetManager.STORAGE_KEY,
                 JSON.stringify(snippets)
             );
             console.log('Snippets saved to globalState:', snippets);
@@ -159,48 +164,48 @@ export class HelloWorldView implements vscode.WebviewViewProvider {
         }
     }
 
-    private async insertCodeAtCursor(code: string, snippetId?: string): Promise<void> {
+    private async insertCodeAtCursor(code: string, filePath: string) {
         try {
             const editor = vscode.window.activeTextEditor;
             if (!editor) {
-                vscode.window.showErrorMessage('エディタが開かれていません。');
+                vscode.window.showErrorMessage('アクティブなエディタが見つかりません');
                 return;
             }
 
-            // エディタの選択範囲にテキストを挿入
-            let insertPositions: number[] = [];
+            // 現在のカーソル位置を取得
+            const position = editor.selection.active;
             
+            // 挿入するコードの前後にコメントを追加
+            const uid = this.generateUid();
+            const wrappedCode = `/// code inserter uid=${uid} START\n${code}\n/// code inserter uid=${uid} END`;
+
+            // コードを挿入
             await editor.edit(editBuilder => {
-                editor.selections.forEach(selection => {
-                    // 挿入前の行番号を記録
-                    const line = selection.start.line + 1; // 1-indexed
-                    insertPositions.push(line);
-                    
-                    editBuilder.replace(selection, code);
-                });
+                editBuilder.insert(position, wrappedCode);
             });
 
-            // ファイル名とパスを取得
-            const fileName = editor.document.fileName.split('/').pop() || editor.document.fileName;
-            const filePath = editor.document.fileName;
+            // 挿入位置を記録
+            this._lastInsertedAt = {
+                position: position,
+                filePath: filePath,
+                uid: uid
+            };
 
-            // 挿入情報をWebViewに送信
-            if (this._view) {
-                this._view.webview.postMessage({
-                    type: 'insertComplete',
-                    positions: insertPositions,
-                    fileName: fileName,
-                    filePath: filePath,
-                    timestamp: new Date().toLocaleString(),
-                    snippetId: snippetId
-                });
-            }
+            // 挿入したコードの位置に移動
+            const newPosition = position.translate(0, wrappedCode.length);
+            editor.selection = new vscode.Selection(newPosition, newPosition);
+            editor.revealRange(new vscode.Range(newPosition, newPosition));
 
-            vscode.window.showInformationMessage(`コードを挿入しました。(${insertPositions.join(', ')}行目)`);
+            // 挿入成功を通知
+            vscode.window.showInformationMessage('コードを挿入しました');
         } catch (error) {
-            console.error('Error inserting code:', error);
-            vscode.window.showErrorMessage('コードの挿入中にエラーが発生しました。');
+            console.error('コード挿入エラー:', error);
+            vscode.window.showErrorMessage('コードの挿入に失敗しました');
         }
+    }
+
+    private generateUid(): string {
+        return Math.random().toString(36).substring(2) + Date.now().toString(36);
     }
 
     private _getWebviewContent(webview: vscode.Webview) {
