@@ -7,6 +7,7 @@ export class CodeInserter {
 
   async insertCodeAtCursor(
     code: string,
+    snippetId: string,
     onInsertComplete?: (snippetId: string) => void
   ): Promise<string> {
     const editor = vscode.window.activeTextEditor;
@@ -15,8 +16,7 @@ export class CodeInserter {
     }
 
     const position = editor.selection.active;
-    const uid = this.generateUid();
-    const wrappedCode = `/// code inserter uid=${uid} START\n${code}\n/// code inserter uid=${uid} END`;
+    const wrappedCode = `/// code inserter snippetId=${snippetId} START\n${code}\n/// code inserter snippetId=${snippetId} END`;
 
     await editor.edit((editBuilder) => {
       editBuilder.insert(position, wrappedCode);
@@ -27,10 +27,10 @@ export class CodeInserter {
     editor.revealRange(new vscode.Range(newPosition, newPosition));
 
     if (onInsertComplete) {
-      onInsertComplete(uid);
+      onInsertComplete(snippetId);
     }
 
-    return uid;
+    return snippetId;
   }
 
   async removeCodeByUid(uid: string): Promise<void> {
@@ -86,5 +86,41 @@ export class CodeInserter {
       console.error("Error jumping to location:", error);
       throw new Error("指定された位置に移動できませんでした");
     }
+  }
+
+  async removeCodeBySnippetId(snippetId: string): Promise<void> {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      throw new Error("アクティブなエディタが見つかりません");
+    }
+
+    const document = editor.document;
+    const text = document.getText();
+
+    const startPattern = new RegExp(
+      `/// code inserter snippetId=${snippetId} START`
+    );
+    const endPattern = new RegExp(
+      `/// code inserter snippetId=${snippetId} END`
+    );
+
+    const startMatch = text.match(startPattern);
+    const endMatch = text.match(endPattern);
+
+    if (!startMatch || !endMatch) {
+      throw new Error("該当するコードブロックが見つかりません");
+    }
+
+    const startIndex = startMatch.index!;
+    const endIndex = endMatch.index! + endMatch[0].length;
+
+    await editor.edit((editBuilder) => {
+      editBuilder.delete(
+        new vscode.Range(
+          document.positionAt(startIndex),
+          document.positionAt(endIndex)
+        )
+      );
+    });
   }
 }

@@ -146,6 +146,12 @@ const App: React.FC = () => {
 
   // スニペットを取り消す関数
   const handleRetract = (id: string) => {
+    // コードの削除を要求
+    vscode.postMessage({
+      type: "removeCode",
+      snippetId: id,
+    });
+
     const updatedSnippets = snippets.map((snippet) => {
       if (snippet.id === id) {
         return {
