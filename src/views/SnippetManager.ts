@@ -73,12 +73,64 @@ export class SnippetManager implements vscode.WebviewViewProvider {
         console.log("Received message:", message);
         try {
           switch (message.type) {
-            case "hello":
-              const text = message.text || "Hello World from React!";
-              vscode.window.showInformationMessage(text);
-              return;
             case "insert":
+              // 挿入済みスニペットのチェック
+              const targetSnippet = this._snippets.find(
+                (snippet) => snippet.id === message.snippetId
+              );
+              if (targetSnippet?.is_inserted) {
+                vscode.window.showErrorMessage(
+                  "このスニペットは既に挿入済みです"
+                );
+                return;
+              }
+
+              const editor = vscode.window.activeTextEditor;
+              if (!editor) {
+                vscode.window.showErrorMessage(
+                  "アクティブなエディタが見つかりません"
+                );
+                return;
+              }
+
+              const position = editor.selection.active;
+              const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+              if (!workspaceFolder) {
+                vscode.window.showErrorMessage(
+                  "ワークスペースフォルダが見つかりません"
+                );
+                return;
+              }
+
+              const filePath = vscode.workspace.asRelativePath(
+                editor.document.uri
+              );
+
               await this.codeInserter.insertCodeAtCursor(message.code);
+
+              // スニペットの状態を更新
+              this._snippets = this._snippets.map((snippet) => {
+                if (snippet.id === message.snippetId) {
+                  return {
+                    ...snippet,
+                    is_inserted: true,
+                    lastInsertedAt: {
+                      positions: [position.line],
+                      filePath,
+                      timestamp: new Date().toISOString(),
+                    },
+                  };
+                }
+                return snippet;
+              });
+
+              // 更新をストレージに保存
+              if (this.snippetStorage) {
+                await this.snippetStorage.saveSnippets(this._snippets);
+              }
+
+              // 更新をWebViewに通知
+              this._sendSnippetsToWebView();
               vscode.window.showInformationMessage("コードを挿入しました");
               return;
             case "jumpToLocation":
@@ -122,8 +174,13 @@ export class SnippetManager implements vscode.WebviewViewProvider {
     this._sendSnippetsToWebView();
   }
 
-  private _sendSnippetsToWebView() {
+  private async _sendSnippetsToWebView() {
     if (this._view) {
+      // スニペットの状態を保存
+      if (this.snippetStorage) {
+        await this.snippetStorage.saveSnippets(this._snippets);
+      }
+
       console.log("Sending snippets to WebView:", this._snippets);
       this._view.webview.postMessage({
         type: "loadSnippets",

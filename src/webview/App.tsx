@@ -40,7 +40,6 @@ const App: React.FC = () => {
             updateSnippetInsertionInfo(
               message.snippetId,
               message.positions,
-              message.fileName,
               message.filePath
             );
           }
@@ -61,8 +60,7 @@ const App: React.FC = () => {
   const updateSnippetInsertionInfo = (
     snippetId: string,
     positions: number[],
-    fileName: string,
-    filePath?: string
+    filePath: string
   ) => {
     setSnippets((prevSnippets) => {
       const updatedSnippets = prevSnippets.map((snippet) => {
@@ -71,8 +69,7 @@ const App: React.FC = () => {
             ...snippet,
             lastInsertedAt: {
               positions,
-              fileName,
-              filePath: filePath || "",
+              filePath,
               timestamp: new Date().toISOString(),
             },
           };
@@ -123,25 +120,26 @@ const App: React.FC = () => {
   };
 
   // スニペットを挿入する関数
-  const handleInsertSnippet = (code: string, snippetId: string) => {
+  const handleInsertSnippet = (
+    code: string,
+    snippetId: string,
+    lastInsertedAt: { filePath: string; positions: number[] }
+  ) => {
     // VSCodeに挿入リクエストを送信
     vscode.postMessage({
       type: "insert",
       code,
       snippetId,
+      lastInsertedAt,
     });
   };
 
   // 特定のファイルの特定行にジャンプする関数
-  const handleJumpToLocation = (
-    fileName: string,
-    filePath: string,
-    line: number
-  ) => {
+  const handleJumpToLocation = (filePath: string, line: number) => {
     // VSCodeにジャンプリクエストを送信
     vscode.postMessage({
       type: "jumpToLocation",
-      fileName: filePath || fileName, // filePathがある場合は優先して使用
+      filePath,
       line,
     });
   };

@@ -4,9 +4,13 @@ import SnippetItem from "./SnippetItem";
 
 interface SnippetListProps {
   snippets: CodeSnippet[];
-  onInsert: (code: string, snippetId: string) => void;
+  onInsert: (
+    code: string,
+    snippetId: string,
+    lastInsertedAt: { filePath: string; positions: number[] }
+  ) => void;
   onDelete: (id: string) => void;
-  onJumpToLocation?: (fileName: string, filePath: string, line: number) => void;
+  onJumpToLocation?: (filePath: string, line: number) => void;
 }
 
 const SnippetList: React.FC<SnippetListProps> = ({

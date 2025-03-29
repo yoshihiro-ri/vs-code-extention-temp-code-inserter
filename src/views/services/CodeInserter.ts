@@ -5,7 +5,10 @@ export class CodeInserter {
     return Math.random().toString(36).substring(2) + Date.now().toString(36);
   }
 
-  async insertCodeAtCursor(code: string): Promise<string> {
+  async insertCodeAtCursor(
+    code: string,
+    onInsertComplete?: (snippetId: string) => void
+  ): Promise<string> {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
       throw new Error("アクティブなエディタが見つかりません");
@@ -22,6 +25,10 @@ export class CodeInserter {
     const newPosition = position.translate(0, wrappedCode.length);
     editor.selection = new vscode.Selection(newPosition, newPosition);
     editor.revealRange(new vscode.Range(newPosition, newPosition));
+
+    if (onInsertComplete) {
+      onInsertComplete(uid);
+    }
 
     return uid;
   }
