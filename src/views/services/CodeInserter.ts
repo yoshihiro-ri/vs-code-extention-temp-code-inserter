@@ -16,13 +16,16 @@ export class CodeInserter {
     }
 
     const position = editor.selection.active;
-    const wrappedCode = `/// code inserter snippetId=${snippetId} START\n${code}\n/// code inserter snippetId=${snippetId} END`;
+    const wrappedCode = `/// code inserter snippetId=${snippetId} START\n${code}\n/// code inserter snippetId=${snippetId} END\n`;
 
     await editor.edit((editBuilder) => {
       editBuilder.insert(position, wrappedCode);
     });
 
-    const newPosition = position.translate(0, wrappedCode.length);
+    // 挿入したコードの行数を計算
+    const lines = wrappedCode.split("\n").length;
+    // 挿入位置から行数を加算して、次の行の改行位置を取得
+    const newPosition = position.translate(lines, 0);
     editor.selection = new vscode.Selection(newPosition, newPosition);
     editor.revealRange(new vscode.Range(newPosition, newPosition));
 
