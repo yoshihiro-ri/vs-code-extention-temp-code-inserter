@@ -16,7 +16,7 @@ export class CodeInserter {
     }
 
     const position = editor.selection.active;
-    const wrappedCode = `/// code inserter snippetId=${snippetId} START\n${code}\n/// code inserter snippetId=${snippetId} END\n`;
+    const wrappedCode = `\n/// code inserter snippetId=${snippetId} START\n${code}\n/// code inserter snippetId=${snippetId} END\n`;
 
     await editor.edit((editBuilder) => {
       editBuilder.insert(position, wrappedCode);

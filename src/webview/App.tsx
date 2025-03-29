@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import SnippetForm from "./components/SnippetForm";
 import SnippetList from "./components/SnippetList";
 import { CodeSnippet } from "./models/types";
+import TabContainer, { Tab } from "./components/TabContainer";
 
 // VSCodeのAPIとのメッセージハンドラー
 declare const acquireVsCodeApi: () => {
@@ -181,21 +182,30 @@ const App: React.FC = () => {
       </header>
 
       <main className="app-content">
-        <div className="form-section">
-          <h2 className="section-title">新しいスニペットを追加</h2>
-          <SnippetForm onAddSnippet={handleAddSnippet} />
-        </div>
-
-        <div className="list-section">
-          <h2 className="section-title">登録済みスニペット</h2>
-          <SnippetList
-            snippets={snippets}
-            onInsert={handleInsertSnippet}
-            onDelete={handleDeleteSnippet}
-            onJumpToLocation={handleJumpToLocation}
-            onRetract={handleRetract}
-          />
-        </div>
+        <TabContainer defaultActiveTab={0}>
+          <Tab label="snippets">
+            <div className="list-section">
+              <div className="form-section">
+                <h2 className="section-title">新しいスニペットを追加</h2>
+                <SnippetForm onAddSnippet={handleAddSnippet} />
+              </div>
+              <h2 className="section-title">登録済みスニペット</h2>
+              <SnippetList
+                snippets={snippets}
+                onInsert={handleInsertSnippet}
+                onDelete={handleDeleteSnippet}
+                onJumpToLocation={handleJumpToLocation}
+                onRetract={handleRetract}
+              />
+            </div>
+          </Tab>
+          <Tab label="variables">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">サンプルタブの内容</h3>
+              <p className="text-gray-700">これはサンプルタブの内容です</p>
+            </div>
+          </Tab>
+        </TabContainer>
       </main>
     </div>
   );

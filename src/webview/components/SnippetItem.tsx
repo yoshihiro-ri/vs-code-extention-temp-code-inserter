@@ -38,10 +38,10 @@ const SnippetItem: React.FC<SnippetItemProps> = ({
       // 最初の挿入位置（行）にジャンプ
       if (positions.length > 0) {
         onJumpToLocation(filePath, positions[0]);
-        // 0.5秒後に取り消し処理を実行
+
         setTimeout(() => {
           onRetract(snippet.id);
-        }, 500);
+        }, 200);
       }
     }
   };
