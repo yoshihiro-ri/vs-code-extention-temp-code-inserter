@@ -4,6 +4,7 @@
 
 const path = require('path');
 const webpack = require('webpack');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 //@ts-check
 /** @typedef {import('webpack').Configuration} WebpackConfig **/
@@ -74,7 +75,7 @@ const webviewConfig = {
       },
       {
         test: /\.css$/,
-        use: ['style-loader', 'css-loader']
+        use: [MiniCssExtractPlugin.loader, 'css-loader']
       }
     ]
   },
@@ -86,6 +87,9 @@ const webviewConfig = {
     }),
     new webpack.ProvidePlugin({
       process: 'process/browser'
+    }),
+    new MiniCssExtractPlugin({
+      filename: 'styles.css'
     })
   ],
   performance: {

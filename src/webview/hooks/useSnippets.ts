@@ -23,6 +23,7 @@ export const useSnippets = (): UseSnippetsReturn => {
   useEffect(() => {
     try {
       const savedSnippets = localStorage.getItem(STORAGE_KEY);
+      console.log('Loading snippets from localStorage:', savedSnippets);
       if (savedSnippets) {
         const snippetsData = JSON.parse(savedSnippets);
         setSnippets(snippetsData);
@@ -34,6 +35,7 @@ export const useSnippets = (): UseSnippetsReturn => {
 
   // スニペットが変更されたら保存する
   useEffect(() => {
+    console.log('Saving snippets to localStorage:', snippets);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(snippets));
   }, [snippets]);
 

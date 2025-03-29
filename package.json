@@ -35,7 +35,18 @@
         "command": "code-inserter.helloWorld",
         "title": "Hello World"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Code Inserter",
+      "properties": {
+        "code-inserter.snippets": {
+          "type": "string",
+          "default": "[]",
+          "description": "保存されたコードスニペット",
+          "scope": "resource"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
@@ -62,6 +73,7 @@
     "autoprefixer": "^10.4.21",
     "css-loader": "^7.1.2",
     "eslint": "^9.21.0",
+    "mini-css-extract-plugin": "^2.9.2",
     "postcss": "^8.5.3",
     "postcss-loader": "^8.1.1",
     "process": "^0.11.10",

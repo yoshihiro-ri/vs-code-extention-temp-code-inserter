@@ -16,24 +16,30 @@ interface CodeSnippet {
     id: string;
     name: string;
     code: string;
-    insertHistory: any[];
+    insertHistory: {
+        positions: number[];
+        fileName: string;
+        filePath: string;
+        timestamp: string;
+        uid: string;
+    }[];
     lastInsertedAt?: {
         positions: number[];
         fileName: string;
         filePath: string;
         timestamp: string;
+        uid: string;
     };
 }
 
 export class SnippetManager implements vscode.WebviewViewProvider {
     public static readonly viewType = 'code-inserter.helloWorldView';
+    private static readonly SETTINGS_KEY = 'snippets';
 
     private _view?: vscode.WebviewView;
     private _disposables: vscode.Disposable[] = [];
     // 最後の挿入操作を記録
     private _lastInsertOperation?: InsertOperation;
-    // スニペットを保存するためのストレージキー
-    private static readonly STORAGE_KEY = 'code-inserter.snippets';
     // 保存されたスニペット
     private _snippets: CodeSnippet[] = [];
     private _lastInsertedAt?: {
@@ -46,22 +52,33 @@ export class SnippetManager implements vscode.WebviewViewProvider {
         private readonly _extensionUri: vscode.Uri,
         private readonly _context: vscode.ExtensionContext
     ) {
-        // 保存されたスニペットを読み込む
+        // 初期化時にスニペットを読み込む
         this._loadSnippets();
     }
 
-    // 保存されたスニペットをロードする
     private _loadSnippets() {
         try {
-            // ExtensionContextのglobalStateから保存されたスニペットを取得
-            const snippetsJson = this._context.globalState.get<string>(SnippetManager.STORAGE_KEY);
-            
+            const workspaceFolders = vscode.workspace.workspaceFolders;
+            if (!workspaceFolders) {
+                console.log('No workspace folders found');
+                return;
+            }
+
+            const workspaceFolder = workspaceFolders[0];
+            const settings = vscode.workspace.getConfiguration('code-inserter', workspaceFolder.uri);
+            const snippetsJson = settings.get<string>(SnippetManager.SETTINGS_KEY);
+
             if (snippetsJson) {
-                this._snippets = JSON.parse(snippetsJson);
-                console.log('Loaded snippets from globalState:', this._snippets);
+                try {
+                    this._snippets = JSON.parse(snippetsJson);
+                    console.log('Loaded snippets from workspace settings:', this._snippets);
+                } catch (parseError) {
+                    console.error('Error parsing snippets JSON:', parseError);
+                    this._snippets = [];
+                }
             } else {
                 this._snippets = [];
-                console.log('No saved snippets found in globalState');
+                console.log('No saved snippets found in workspace settings');
             }
         } catch (error) {
             console.error('Error loading snippets:', error);
@@ -69,16 +86,23 @@ export class SnippetManager implements vscode.WebviewViewProvider {
         }
     }
 
-    // スニペットを保存する
     private async _saveSnippets(snippets: CodeSnippet[]) {
         try {
+            const workspaceFolders = vscode.workspace.workspaceFolders;
+            if (!workspaceFolders) {
+                console.log('No workspace folders found');
+                return;
+            }
+
+            const workspaceFolder = workspaceFolders[0];
+            const settings = vscode.workspace.getConfiguration('code-inserter', workspaceFolder.uri);
+            
+            // スニペットをJSON文字列に変換
+            const snippetsJson = JSON.stringify(snippets);
+            await settings.update(SnippetManager.SETTINGS_KEY, snippetsJson, true);
+            
             this._snippets = snippets;
-            // ExtensionContextのglobalStateに保存
-            await this._context.globalState.update(
-                SnippetManager.STORAGE_KEY,
-                JSON.stringify(snippets)
-            );
-            console.log('Snippets saved to globalState:', snippets);
+            console.log('Snippets saved to workspace settings:', snippets);
         } catch (error) {
             console.error('Error saving snippets:', error);
         }
@@ -131,9 +155,13 @@ export class SnippetManager implements vscode.WebviewViewProvider {
                         await this.jumpToLocation(message.fileName, message.line);
                         return;
                     case 'updateSnippets':
-                        // スニペットの保存処理
                         if (message.snippets) {
                             await this._saveSnippets(message.snippets);
+                        }
+                        return;
+                    case 'removeCode':
+                        if (message.uid) {
+                            await this.removeCodeByUid(message.uid);
                         }
                         return;
                 }
@@ -153,7 +181,6 @@ export class SnippetManager implements vscode.WebviewViewProvider {
         this._sendSnippetsToWebView();
     }
 
-    // 保存されたスニペットをWebViewに送信
     private _sendSnippetsToWebView() {
         if (this._view) {
             console.log('Sending snippets to WebView:', this._snippets);
@@ -191,6 +218,20 @@ export class SnippetManager implements vscode.WebviewViewProvider {
                 uid: uid
             };
 
+            // スニペットのinsertHistoryに登録
+            const snippet = this._snippets.find(s => s.id === filePath);
+            if (snippet) {
+                const insertInfo = {
+                    positions: [position.line + 1], // 1-indexed
+                    fileName: editor.document.fileName.split('/').pop() || editor.document.fileName,
+                    filePath: editor.document.fileName,
+                    timestamp: new Date().toLocaleString(),
+                    uid: uid
+                };
+                snippet.insertHistory.push(insertInfo);
+                snippet.lastInsertedAt = insertInfo;
+            }
+
             // 挿入したコードの位置に移動
             const newPosition = position.translate(0, wrappedCode.length);
             editor.selection = new vscode.Selection(newPosition, newPosition);
@@ -209,132 +250,121 @@ export class SnippetManager implements vscode.WebviewViewProvider {
     }
 
     private _getWebviewContent(webview: vscode.Webview) {
-        // ReactのビルドファイルへのパスURIを取得
         const scriptUri = webview.asWebviewUri(
             vscode.Uri.joinPath(this._extensionUri, 'dist', 'webview', 'index.js')
         );
-
-        // デバッグメッセージを出力
-        console.log('Script URI:', scriptUri.toString());
+        const styleUri = webview.asWebviewUri(
+            vscode.Uri.joinPath(this._extensionUri, 'dist', 'webview', 'styles.css')
+        );
 
         return `<!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; connect-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource} 'unsafe-inline' 'unsafe-eval'; img-src ${webview.cspSource} data:;">
-            <title>Hello World</title>
-            <style>
-                #root {
-                    height: 100%;
-                    width: 100%;
-                }
-                body {
-                    padding: 0;
-                    margin: 0;
-                    height: 100vh;
-                    width: 100vw;
-                    overflow: hidden;
-                }
-            </style>
-        </head>
-        <body>
-            <div id="root"></div>
-            <script>
-                window.addEventListener('error', function(e) {
-                    console.error('Error in script:', e);
-                });
-                
-                // WebViewの準備完了時に通知
-                window.addEventListener('load', function() {
-                    const vscode = acquireVsCodeApi();
-                    vscode.postMessage({ type: 'ready' });
-                });
-            </script>
-            <script src="${scriptUri}"></script>
-        </body>
-        </html>`;
+            <html lang="ja">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; connect-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource} 'unsafe-inline' 'unsafe-eval'; img-src ${webview.cspSource} data:;">
+                <title>Code Inserter</title>
+                <style>
+                    #root {
+                        height: 100%;
+                        width: 100%;
+                    }
+                    body {
+                        padding: 0;
+                        margin: 0;
+                        height: 100vh;
+                        width: 100vw;
+                        overflow: hidden;
+                    }
+                </style>
+                <link rel="stylesheet" href="${styleUri}">
+            </head>
+            <body>
+                <div id="root"></div>
+                <script>
+                    window.addEventListener('error', function(e) {
+                        console.error('Error in script:', e);
+                    });
+                    
+                    // WebViewの準備完了時に通知
+                    window.addEventListener('load', function() {
+                        const vscode = acquireVsCodeApi();
+                        vscode.postMessage({ type: 'ready' });
+                    });
+                </script>
+                <script src="${scriptUri}"></script>
+            </body>
+            </html>`;
     }
 
-    // 特定のファイルの特定の行にジャンプする関数
-    private async jumpToLocation(fileName: string, line: number): Promise<void> {
+    private async jumpToLocation(fileName: string, line: number) {
         try {
-            // ワークスペースから該当するファイルを検索
-            const workspaceFolders = vscode.workspace.workspaceFolders;
-            if (!workspaceFolders) {
-                vscode.window.showErrorMessage('ワークスペースが開かれていません。');
+            const document = await vscode.workspace.openTextDocument(fileName);
+            const position = new vscode.Position(line - 1, 0);
+            const selection = new vscode.Selection(position, position);
+            
+            await vscode.window.showTextDocument(document, {
+                selection: selection,
+                preserveFocus: true
+            });
+        } catch (error) {
+            console.error('Error jumping to location:', error);
+            vscode.window.showErrorMessage('指定された位置に移動できませんでした');
+        }
+    }
+
+    private async removeCodeByUid(uid: string) {
+        try {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                vscode.window.showErrorMessage('アクティブなエディタが見つかりません');
                 return;
             }
 
-            let targetUri: vscode.Uri | undefined;
+            const document = editor.document;
+            const text = document.getText();
 
-            // ファイルパスが絶対パスかどうかを確認
-            if (fileName.startsWith('/')) {
-                // 絶対パスの場合は直接ファイルを開く
-                targetUri = vscode.Uri.file(fileName);
-            } else {
-                // ファイル名だけが保存されている場合、フルパスを再構築する
-                // まずは現在のファイルのディレクトリを基準にする
-                const activeEditor = vscode.window.activeTextEditor;
+            // uidを含むコメントブロックを探す
+            const startPattern = new RegExp(`/// code inserter uid=${uid} START`);
+            const endPattern = new RegExp(`/// code inserter uid=${uid} END`);
 
-                if (activeEditor) {
-                    const currentDir = vscode.Uri.file(
-                        activeEditor.document.fileName.substring(0, activeEditor.document.fileName.lastIndexOf('/'))
-                    );
-                    const possiblePath = vscode.Uri.joinPath(currentDir, fileName);
+            const startMatch = text.match(startPattern);
+            const endMatch = text.match(endPattern);
 
-                    try {
-                        await vscode.workspace.fs.stat(possiblePath);
-                        targetUri = possiblePath;
-                    } catch {
-                        // ファイルが見つからない場合は、ワークスペース全体を検索
-                        targetUri = undefined;
-                    }
-                }
-
-                // ワークスペース全体からファイルを検索
-                if (!targetUri) {
-                    const files = await vscode.workspace.findFiles(`**/${fileName}`, null, 1);
-                    if (files.length === 0) {
-                        vscode.window.showErrorMessage(`ファイル "${fileName}" が見つかりませんでした。`);
-                        return;
-                    }
-                    targetUri = files[0];
-                }
+            if (!startMatch || !endMatch) {
+                vscode.window.showErrorMessage('該当するコードブロックが見つかりません');
+                return;
             }
 
-            // ファイルを開く
-            try {
-                const document = await vscode.workspace.openTextDocument(targetUri);
-                const editor = await vscode.window.showTextDocument(document);
-                
-                // 行にジャンプ (0-indexed なので -1 する)
-                const position = new vscode.Position(line - 1, 0);
-                editor.selection = new vscode.Selection(position, position);
-                
-                // エディタをスクロールして該当行を表示
-                editor.revealRange(
-                    new vscode.Range(position, position),
-                    vscode.TextEditorRevealType.InCenter
+            const startIndex = startMatch.index!;
+            const endIndex = endMatch.index! + endMatch[0].length;
+
+            // コードブロックを削除
+            await editor.edit(editBuilder => {
+                editBuilder.delete(new vscode.Range(
+                    document.positionAt(startIndex),
+                    document.positionAt(endIndex)
+                ));
+            });
+
+            // スニペットの履歴からも削除
+            for (const snippet of this._snippets) {
+                snippet.insertHistory = snippet.insertHistory.filter(
+                    history => history.uid !== uid
                 );
-                
-                vscode.window.showInformationMessage(`${fileName.split('/').pop()} の ${line}行目にジャンプしました。`);
-            } catch (error) {
-                console.error('Error opening document:', error);
-                vscode.window.showErrorMessage(`ファイル "${fileName}" を開けませんでした。`);
+                if (snippet.lastInsertedAt?.uid === uid) {
+                    snippet.lastInsertedAt = undefined;
+                }
             }
+
+            vscode.window.showInformationMessage('コードを削除しました');
         } catch (error) {
-            console.error('Error jumping to location:', error);
-            vscode.window.showErrorMessage('指定位置へのジャンプ中にエラーが発生しました。');
+            console.error('コード削除エラー:', error);
+            vscode.window.showErrorMessage('コードの削除に失敗しました');
         }
     }
 
     public dispose() {
-        while (this._disposables.length) {
-            const disposable = this._disposables.pop();
-            if (disposable) {
-                disposable.dispose();
-            }
-        }
+        this._disposables.forEach(d => d.dispose());
     }
 } 
