@@ -16,20 +16,6 @@ interface CodeSnippet {
     id: string;
     name: string;
     code: string;
-    insertHistory: {
-        positions: number[];
-        fileName: string;
-        filePath: string;
-        timestamp: string;
-        uid: string;
-    }[];
-    lastInsertedAt?: {
-        positions: number[];
-        fileName: string;
-        filePath: string;
-        timestamp: string;
-        uid: string;
-    };
 }
 
 export class SnippetManager implements vscode.WebviewViewProvider {
@@ -218,20 +204,6 @@ export class SnippetManager implements vscode.WebviewViewProvider {
                 uid: uid
             };
 
-            // スニペットのinsertHistoryに登録
-            const snippet = this._snippets.find(s => s.id === filePath);
-            if (snippet) {
-                const insertInfo = {
-                    positions: [position.line + 1], // 1-indexed
-                    fileName: editor.document.fileName.split('/').pop() || editor.document.fileName,
-                    filePath: editor.document.fileName,
-                    timestamp: new Date().toLocaleString(),
-                    uid: uid
-                };
-                snippet.insertHistory.push(insertInfo);
-                snippet.lastInsertedAt = insertInfo;
-            }
-
             // 挿入したコードの位置に移動
             const newPosition = position.translate(0, wrappedCode.length);
             editor.selection = new vscode.Selection(newPosition, newPosition);
@@ -346,16 +318,6 @@ export class SnippetManager implements vscode.WebviewViewProvider {
                     document.positionAt(endIndex)
                 ));
             });
-
-            // スニペットの履歴からも削除
-            for (const snippet of this._snippets) {
-                snippet.insertHistory = snippet.insertHistory.filter(
-                    history => history.uid !== uid
-                );
-                if (snippet.lastInsertedAt?.uid === uid) {
-                    snippet.lastInsertedAt = undefined;
-                }
-            }
 
             vscode.window.showInformationMessage('コードを削除しました');
         } catch (error) {

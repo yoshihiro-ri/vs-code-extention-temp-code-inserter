@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import SnippetForm from './SnippetForm';
 import SnippetList from './SnippetList';
-import { CodeSnippet, InsertHistory } from '../models/types';
+import { CodeSnippet } from '../models/types';
 
 // VSCodeのAPIとのメッセージハンドラー
 declare const acquireVsCodeApi: () => {
@@ -90,8 +90,7 @@ const App: React.FC = () => {
         const newSnippet: CodeSnippet = {
             id: crypto.randomUUID(),
             name,
-            code,
-            insertHistory: []
+            code
         };
         
         const updatedSnippets = [...snippets, newSnippet];

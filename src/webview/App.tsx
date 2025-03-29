@@ -95,8 +95,7 @@ const App: React.FC = () => {
         const newSnippet: CodeSnippet = {
             id: crypto.randomUUID(),
             name,
-            code,
-            insertHistory: []
+            code
         };
         
         const updatedSnippets = [...snippets, newSnippet];
