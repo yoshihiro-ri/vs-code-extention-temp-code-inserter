@@ -39,12 +39,6 @@ export class WebviewContentProvider {
                     window.addEventListener('error', function(e) {
                         console.error('Error in script:', e);
                     });
-                    
-                    // WebViewの準備完了時に通知
-                    window.addEventListener('load', function() {
-                        const vscode = acquireVsCodeApi();
-                        vscode.postMessage({ type: 'ready' });
-                    });
                 </script>
                 <script src="${scriptUri}"></script>
             </body>

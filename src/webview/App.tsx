@@ -11,7 +11,7 @@ declare const acquireVsCodeApi: () => {
   getState: () => any;
 };
 
-// VSCodeのAPIを取得
+// VSCodeのAPIを一度だけ取得
 const vscode = acquireVsCodeApi();
 
 // メインアプリコンポーネント
@@ -40,6 +40,7 @@ const App: React.FC = () => {
             updateSnippetInsertionInfo(
               message.snippetId,
               message.positions,
+              message.fileName,
               message.filePath
             );
           }
@@ -60,6 +61,7 @@ const App: React.FC = () => {
   const updateSnippetInsertionInfo = (
     snippetId: string,
     positions: number[],
+    fileName: string,
     filePath: string
   ) => {
     setSnippets((prevSnippets) => {
