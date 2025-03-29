@@ -1,10 +1,10 @@
-import * as React from 'react';
-import { createRoot } from 'react-dom/client';
-import App from './App';
-import './styles/tailwind.css';
+import * as React from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App";
+import "./styles/tailwind.css";
 
-const root = document.getElementById('root');
+const root = document.getElementById("root");
 
 if (root) {
   createRoot(root).render(<App />);
-} 
+}

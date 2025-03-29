@@ -23,8 +23,8 @@ const SnippetList: React.FC<SnippetListProps> = ({
         </div>
       );
     }
-    
-    return snippets.map(snippet => (
+
+    return snippets.map((snippet) => (
       <SnippetItem
         key={snippet.id}
         snippet={snippet}
@@ -35,11 +35,7 @@ const SnippetList: React.FC<SnippetListProps> = ({
     ));
   };
 
-  return (
-    <div className="snippet-list">
-      {renderSnippets()}
-    </div>
-  );
+  return <div className="snippet-list">{renderSnippets()}</div>;
 };
 
 export default SnippetList;
