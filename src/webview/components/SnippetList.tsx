@@ -11,6 +11,7 @@ interface SnippetListProps {
   ) => void;
   onDelete: (id: string) => void;
   onJumpToLocation?: (filePath: string, line: number) => void;
+  onRetract: (id: string) => void;
 }
 
 const SnippetList: React.FC<SnippetListProps> = ({
@@ -18,6 +19,7 @@ const SnippetList: React.FC<SnippetListProps> = ({
   onInsert,
   onDelete,
   onJumpToLocation,
+  onRetract,
 }) => {
   const renderSnippets = () => {
     if (snippets.length === 0) {
@@ -35,6 +37,7 @@ const SnippetList: React.FC<SnippetListProps> = ({
         onInsert={onInsert}
         onDelete={onDelete}
         onJumpToLocation={onJumpToLocation}
+        onRetract={onRetract}
       />
     ));
   };

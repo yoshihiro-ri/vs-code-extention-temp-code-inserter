@@ -144,6 +144,28 @@ const App: React.FC = () => {
     });
   };
 
+  // スニペットを取り消す関数
+  const handleRetract = (id: string) => {
+    const updatedSnippets = snippets.map((snippet) => {
+      if (snippet.id === id) {
+        return {
+          ...snippet,
+          is_inserted: false,
+          lastInsertedAt: undefined,
+        };
+      }
+      return snippet;
+    });
+
+    setSnippets(updatedSnippets);
+
+    // VSCodeに更新を通知
+    vscode.postMessage({
+      type: "updateSnippets",
+      snippets: updatedSnippets,
+    });
+  };
+
   return (
     <div className="app-container">
       <header className="app-header">
@@ -163,6 +185,7 @@ const App: React.FC = () => {
             onInsert={handleInsertSnippet}
             onDelete={handleDeleteSnippet}
             onJumpToLocation={handleJumpToLocation}
+            onRetract={handleRetract}
           />
         </div>
       </main>

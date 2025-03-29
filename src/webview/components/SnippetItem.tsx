@@ -11,6 +11,7 @@ export interface SnippetItemProps {
   ) => void;
   onDelete: (id: string) => void;
   onJumpToLocation?: (filePath: string, line: number) => void;
+  onRetract: (id: string) => void;
 }
 
 const SnippetItem: React.FC<SnippetItemProps> = ({
@@ -18,6 +19,7 @@ const SnippetItem: React.FC<SnippetItemProps> = ({
   onInsert,
   onDelete,
   onJumpToLocation,
+  onRetract,
 }) => {
   const handleInsert = () => {
     onInsert(snippet.code, snippet.id, {
@@ -36,6 +38,10 @@ const SnippetItem: React.FC<SnippetItemProps> = ({
       // 最初の挿入位置（行）にジャンプ
       if (positions.length > 0) {
         onJumpToLocation(filePath, positions[0]);
+        // 0.5秒後に取り消し処理を実行
+        setTimeout(() => {
+          onRetract(snippet.id);
+        }, 500);
       }
     }
   };
@@ -57,9 +63,11 @@ const SnippetItem: React.FC<SnippetItemProps> = ({
       <div className="snippet-header">
         <span className="snippet-title">{snippet.name}</span>
         <div>
-          <button className="button-primary" onClick={handleRetraction}>
-            取り消し
-          </button>
+          {snippet.is_inserted && (
+            <button className="button-primary" onClick={handleRetraction}>
+              取り消し
+            </button>
+          )}
           <button className="button-primary" onClick={handleInsert}>
             挿入
           </button>
