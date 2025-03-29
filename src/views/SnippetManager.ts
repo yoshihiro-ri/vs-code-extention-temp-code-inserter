@@ -19,7 +19,7 @@ interface CodeSnippet {
 }
 
 export class SnippetManager implements vscode.WebviewViewProvider {
-  public static readonly viewType = "code-inserter.helloWorldView";
+  public static readonly viewType = "code-inserter.tempCodeInserterView";
   private static readonly SETTINGS_KEY = "snippets";
 
   private _view?: vscode.WebviewView;
@@ -28,11 +28,6 @@ export class SnippetManager implements vscode.WebviewViewProvider {
   private _lastInsertOperation?: InsertOperation;
   // 保存されたスニペット
   private _snippets: CodeSnippet[] = [];
-  private _lastInsertedAt?: {
-    position: vscode.Position;
-    filePath: string;
-    uid: string;
-  };
 
   constructor(
     private readonly _extensionUri: vscode.Uri,
@@ -202,13 +197,6 @@ export class SnippetManager implements vscode.WebviewViewProvider {
         editBuilder.insert(position, wrappedCode);
       });
 
-      // 挿入位置を記録
-      this._lastInsertedAt = {
-        position: position,
-        filePath: filePath,
-        uid: uid,
-      };
-
       // 挿入したコードの位置に移動
       const newPosition = position.translate(0, wrappedCode.length);
       editor.selection = new vscode.Selection(newPosition, newPosition);
@@ -233,7 +221,7 @@ export class SnippetManager implements vscode.WebviewViewProvider {
     const styleUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this._extensionUri, "dist", "webview", "styles.css")
     );
-
+    // TODO HTMLは別ファイルに切り分けたい
     return `<!DOCTYPE html>
             <html lang="ja">
             <head>

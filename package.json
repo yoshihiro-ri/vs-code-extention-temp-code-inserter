@@ -25,14 +25,14 @@
       "code-inserter-sidebar-view": [
         {
           "type": "webview",
-          "id": "code-inserter.helloWorldView",
+          "id": "code-inserter.tempCodeInserterView",
           "name": "コードスニペット"
         }
       ]
     },
     "commands": [
       {
-        "command": "code-inserter.helloWorld",
+        "command": "code-inserter.tempCodeInserter",
         "title": "Hello World"
       }
     ],
