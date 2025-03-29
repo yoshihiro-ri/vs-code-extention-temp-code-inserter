@@ -30,7 +30,15 @@ const SnippetItem: React.FC<SnippetItemProps> = ({
     onDelete(snippet.id);
   };
 
-  const handleRetraction = () => {};
+  const handleRetraction = () => {
+    if (snippet.lastInsertedAt && onJumpToLocation) {
+      const { filePath, positions } = snippet.lastInsertedAt;
+      // 最初の挿入位置（行）にジャンプ
+      if (positions.length > 0) {
+        onJumpToLocation(filePath, positions[0]);
+      }
+    }
+  };
 
   const handleJumpToLocation = () => {
     if (snippet.lastInsertedAt && onJumpToLocation) {

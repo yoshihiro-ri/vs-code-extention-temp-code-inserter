@@ -65,9 +65,16 @@ export class CodeInserter {
     });
   }
 
-  async jumpToLocation(fileName: string, line: number): Promise<void> {
+  async jumpToLocation(filePath: string, line: number): Promise<void> {
     try {
-      const document = await vscode.workspace.openTextDocument(fileName);
+      const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+      if (!workspaceFolder) {
+        throw new Error("ワークスペースフォルダが見つかりません");
+      }
+
+      // 相対パスから絶対パスに変換
+      const absolutePath = vscode.Uri.joinPath(workspaceFolder.uri, filePath);
+      const document = await vscode.workspace.openTextDocument(absolutePath);
       const position = new vscode.Position(line - 1, 0);
       const selection = new vscode.Selection(position, position);
 

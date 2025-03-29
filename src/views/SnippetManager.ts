@@ -135,7 +135,7 @@ export class SnippetManager implements vscode.WebviewViewProvider {
               return;
             case "jumpToLocation":
               await this.codeInserter.jumpToLocation(
-                message.fileName,
+                message.filePath,
                 message.line
               );
               return;
